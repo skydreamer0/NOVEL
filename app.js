@@ -14,7 +14,7 @@ const forceSourceFromQuery = new URL(window.location.href).searchParams.get("sou
 const config = {
   includeExtensions: [".md"],
   githubOwner: inferredGithub?.owner || "skydreamer0",
-  githubRepo: inferredGithub?.repo || "newtestnovel",
+  githubRepo: inferredGithub?.repo || "NOVEL",
   githubBranch: branchFromQuery || "master",
 };
 
@@ -163,20 +163,24 @@ function normalizeChapterTitle(rawTitle) {
 }
 
 function extractChapterTitle(markdown, path) {
-  const lines = markdown.split("\n");
+  const lines = markdown.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+  // Try to find a line starting with '第...章' or something similar
+  const chapterPattern = /^第[0-9零一二三四五六七八九十百千兩〇]+[章卷].+/;
+  const lineMatch = lines.find(line => chapterPattern.test(line));
+  if (lineMatch) return normalizeChapterTitle(lineMatch);
+
+  // Fallback: look for Markdown headers
   const headings = lines
-    .map((line) => line.trim())
     .map((line) => {
       const match = line.match(/^#{1,6}\s+(.+)$/);
       return match ? match[1].trim() : null;
     })
     .filter(Boolean);
 
-  const chapterHeading = headings.find((heading) =>
-    /^第[0-9零一二三四五六七八九十百千兩〇]+章/.test(heading),
-  );
-  if (chapterHeading) return normalizeChapterTitle(chapterHeading);
   if (headings[0]) return normalizeChapterTitle(headings[0]);
+
+  // Last resort: use the filename
   return getFallbackTitle(path);
 }
 
